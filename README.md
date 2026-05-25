@@ -34,6 +34,38 @@ npm run server
 The server listens on `http://localhost:3001` by default. A liveness probe is
 available at `GET /healthz`.
 
+### Deploy to Vercel
+
+This repo is set up as a [Vercel serverless Express](https://vercel.com/docs/frameworks/backend/express) app:
+
+- `src/app.js` — Express app (exported for Vercel)
+- `src/index.js` — local `npm start` / `npm run dev` only
+- `api/index.js` — Vercel entry (`export default app`)
+- `vercel.json` — catch-all rewrite + 60s function timeout for AI calls
+
+**1. Push the `server` directory** (this git root) to GitHub and import the project in [Vercel](https://vercel.com/new). Leave the root directory as `.` (no monorepo subpath).
+
+**2. Set environment variables** in the Vercel project (Settings → Environment Variables):
+
+| Variable | Required | Notes |
+| --- | --- | --- |
+| `OPENAI_API_KEY` | yes | |
+| `GEMINI_API_KEY` | yes | |
+| `CORS_ORIGIN` | no | Frontend URL(s). Comma-separated for multiple origins, e.g. `https://your-app.vercel.app,http://localhost:3000` |
+| `OPENAI_MODEL` | no | Default `gpt-4.1` |
+| `GEMINI_MODEL` | no | Default `gemini-3-pro-preview` |
+| `MAX_UPLOAD_BYTES` | no | Use `4500000` or less on Vercel (platform body limit ~4.5 MB) |
+
+**3. Deploy.** After deploy, use your Vercel URL for API calls, e.g. `https://your-project.vercel.app/healthz` and `https://your-project.vercel.app/api/analyze/single`. Swagger UI: `https://your-project.vercel.app/api-docs`.
+
+**Local Vercel emulation** (optional, requires [Vercel CLI](https://vercel.com/docs/cli)):
+
+```bash
+npx vercel dev
+```
+
+Copy `.env.example` to `.env` for local keys (see Environment variables below).
+
 ### API documentation (Swagger)
 
 Interactive OpenAPI docs are served when the server is running:
@@ -323,9 +355,12 @@ than the other endpoints because this screen needs to see thin film/residue).
 ```
 server/
 ├── .env.example           # Template — copy to .env and fill in keys
+├── api/index.js           # Vercel serverless entry (exports Express app)
+├── vercel.json            # Rewrites + function timeout/memory
 ├── package.json           # ESM, scripts, dependencies
 └── src/
-    ├── index.js           # Express app, middleware chain, graceful shutdown
+    ├── app.js             # Express app (shared by local server + Vercel)
+    ├── index.js           # Local dev server + graceful shutdown
     ├── swagger/
     │   ├── openapi.js     # OpenAPI 3.0 spec
     │   └── setup.js       # Swagger UI at /api-docs

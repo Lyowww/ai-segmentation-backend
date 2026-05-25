@@ -14,6 +14,14 @@ const optionalString = (value, fallback) => {
   return value.trim();
 };
 
+const parseCorsOrigin = (value, fallback) => {
+  const raw = optionalString(value, fallback);
+  if (raw.includes(',')) {
+    return raw.split(',').map((origin) => origin.trim()).filter(Boolean);
+  }
+  return raw;
+};
+
 const parsePositiveInt = (value, fallback) => {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
@@ -22,7 +30,7 @@ const parsePositiveInt = (value, fallback) => {
 
 export const config = {
   port: parsePositiveInt(process.env.PORT, 3001),
-  corsOrigin: optionalString(process.env.CORS_ORIGIN, 'http://localhost:3000'),
+  corsOrigin: parseCorsOrigin(process.env.CORS_ORIGIN, 'http://localhost:3000'),
   maxUploadBytes: parsePositiveInt(process.env.MAX_UPLOAD_BYTES, 15 * 1024 * 1024),
   openai: {
     apiKey: requireString(process.env.OPENAI_API_KEY, 'OPENAI_API_KEY'),
