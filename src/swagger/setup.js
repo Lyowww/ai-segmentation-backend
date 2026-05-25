@@ -3,14 +3,18 @@ import { openApiSpec } from './openapi.js';
 const SWAGGER_UI_VERSION = '5.32.6';
 const SWAGGER_UI_CDN = `https://unpkg.com/swagger-ui-dist@${SWAGGER_UI_VERSION}`;
 
-const buildOpenApiServers = () => {
-  const servers = [{ url: 'http://localhost:3001', description: 'Local development' }];
-  if (process.env.VERCEL_URL) {
-    servers.unshift({
-      url: `https://${process.env.VERCEL_URL}`,
-      description: 'Vercel deployment'
-    });
+/** Match the host the browser used (preview URL, production alias, localhost). */
+export const buildOpenApiServers = (req) => {
+  const proto = req.get('x-forwarded-proto') || req.protocol || 'https';
+  const host = req.get('x-forwarded-host') || req.get('host');
+  const current = `${proto}://${host}`;
+
+  const servers = [{ url: current, description: 'Current host' }];
+
+  if (!process.env.VERCEL) {
+    servers.push({ url: 'http://localhost:3001', description: 'Local development (npm start)' });
   }
+
   return servers;
 };
 
@@ -41,7 +45,11 @@ const swaggerUiHtml = () => `<!DOCTYPE html>
         plugins: [SwaggerUIBundle.plugins.DownloadUrl],
         layout: 'StandaloneLayout',
         persistAuthorization: true,
-        tryItOutEnabled: true
+        tryItOutEnabled: true,
+        requestInterceptor: function (request) {
+          request.credentials = 'include';
+          return request;
+        }
       });
     };
   </script>
@@ -49,8 +57,8 @@ const swaggerUiHtml = () => `<!DOCTYPE html>
 </html>`;
 
 export const setupSwagger = (app) => {
-  app.get('/api-docs/openapi.json', (_req, res) => {
-    res.json({ ...openApiSpec, servers: buildOpenApiServers() });
+  app.get('/api-docs/openapi.json', (req, res) => {
+    res.json({ ...openApiSpec, servers: buildOpenApiServers(req) });
   });
 
   app.get('/api-docs', (_req, res) => {

@@ -1,16 +1,15 @@
 import express from 'express';
-import cors from 'cors';
 import morgan from 'morgan';
 
-import { config } from './config.js';
 import analysisRoutes from './routes/analysis.js';
+import { corsMiddleware } from './middleware/cors.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { setupSwagger } from './swagger/setup.js';
 
 const app = express();
 
 app.disable('x-powered-by');
-app.use(cors({ origin: config.corsOrigin }));
+app.use(corsMiddleware);
 app.use(morgan('tiny'));
 app.use(express.json({ limit: '1mb' }));
 

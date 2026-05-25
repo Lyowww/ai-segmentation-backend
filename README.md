@@ -58,6 +58,13 @@ This repo is set up as a [Vercel serverless Express](https://vercel.com/docs/fra
 
 **3. Deploy.** After deploy, use your Vercel URL for API calls, e.g. `https://your-project.vercel.app/healthz` and `https://your-project.vercel.app/api/analyze/single`. Swagger UI: `https://your-project.vercel.app/api-docs`.
 
+**4. Deployment Protection (important).** If **Deployment Protection** is enabled (common on preview URLs like `*-lyowws-projects.vercel.app`), unauthenticated requests get **401 HTML**, not JSON. Browsers show Swagger “Try it out” as **Failed to fetch**; `curl` without a bypass token also fails. For a public API:
+
+- Vercel → Project → **Settings → Deployment Protection** → disable for **Production** (and Preview if you need public preview URLs), **or**
+- Use [Protection Bypass for Automation](https://vercel.com/docs/deployment-protection/methods-to-bypass-deployment-protection/protection-bypass-automation) and pass `x-vercel-protection-bypass: <secret>` in Swagger **Authorize** or in `curl`.
+
+Test without the browser: `curl https://your-project.vercel.app/healthz` should return `{"status":"ok"}`, not an HTML login page.
+
 **Local Vercel emulation** (optional, requires [Vercel CLI](https://vercel.com/docs/cli)):
 
 ```bash
