@@ -1,5 +1,4 @@
 import { parseJsonResponse, boolOr } from './common.js';
-import { attachAnalysisMetrics } from './metrics.js';
 
 /**
  * Extract contamination items from a parsed AI response. Handles three
@@ -32,19 +31,16 @@ const contaminationItemsFromResponse = (parsed) => {
 export const parseRecyclablesResponse = (content) => {
   const parsed = parseJsonResponse(content);
 
-  return attachAnalysisMetrics(
-    {
-      recyclables_present: boolOr(parsed.recyclables_present, false),
-      contamination_score: Number.isFinite(parsed.contamination_score)
-        ? parsed.contamination_score
-        : null,
-      contamination_items: contaminationItemsFromResponse(parsed),
-      // Legacy field — kept so any consumer that still expects a string keeps working.
-      contamination_reason:
-        typeof parsed.contamination_reason === 'string' ? parsed.contamination_reason : 'unknown',
-      food_waste_items: Array.isArray(parsed.food_waste_items) ? parsed.food_waste_items : []
-    },
-    parsed,
-    { kind: 'recyclables' }
-  );
+  return {
+    bag_detected: boolOr(parsed.bag_detected, false),
+    recyclables_present: boolOr(parsed.recyclables_present, false),
+    contamination_score: Number.isFinite(parsed.contamination_score)
+      ? parsed.contamination_score
+      : null,
+    contamination_items: contaminationItemsFromResponse(parsed),
+    // Legacy field — kept so any consumer that still expects a string keeps working.
+    contamination_reason:
+      typeof parsed.contamination_reason === 'string' ? parsed.contamination_reason : 'unknown',
+    food_waste_items: Array.isArray(parsed.food_waste_items) ? parsed.food_waste_items : []
+  };
 };

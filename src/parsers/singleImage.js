@@ -4,7 +4,6 @@ import {
   numberOr,
   boolOr
 } from './common.js';
-import { attachAnalysisMetrics } from './metrics.js';
 
 const normalizeProduct = (raw, index) => {
   const id = typeof raw?.id === 'string' && raw.id.trim().length > 0
@@ -34,19 +33,15 @@ export const parseSingleImageResponse = (content) => {
   const rawProducts = extractArray(parsed);
   const products = rawProducts.map(normalizeProduct);
 
-  return attachAnalysisMetrics(
-    {
-      products,
-      food_waste_items: Array.isArray(parsed.food_waste_items) ? parsed.food_waste_items : [],
-      containers_with_food_or_drink: Array.isArray(parsed.containers_with_food_or_drink)
-        ? parsed.containers_with_food_or_drink
-        : [],
-      organics_contamination_present: boolOr(parsed.organics_contamination_present, false),
-      organics_contamination_items: Array.isArray(parsed.organics_contamination_items)
-        ? parsed.organics_contamination_items
-        : []
-    },
-    parsed,
-    { kind: 'single' }
-  );
+  return {
+    products,
+    food_waste_items: Array.isArray(parsed.food_waste_items) ? parsed.food_waste_items : [],
+    containers_with_food_or_drink: Array.isArray(parsed.containers_with_food_or_drink)
+      ? parsed.containers_with_food_or_drink
+      : [],
+    organics_contamination_present: boolOr(parsed.organics_contamination_present, false),
+    organics_contamination_items: Array.isArray(parsed.organics_contamination_items)
+      ? parsed.organics_contamination_items
+      : []
+  };
 };

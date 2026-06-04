@@ -1,5 +1,3 @@
-import { METRICS_JSON_FIELDS, METRICS_GUIDELINES } from './metrics.js';
-
 /**
  * Food-waste caddy recognition prompt.
  *
@@ -11,7 +9,11 @@ import { METRICS_JSON_FIELDS, METRICS_GUIDELINES } from './metrics.js';
 const PROMPT = `Analyze this image of a transparent food-waste caddy/bin and detect what is INSIDE the caddy.
 
 Tasks:
-1. Determine if ANY food/organic food waste is present
+
+RULE: IF caddy is not detected exit immediately with "caddy_detected": false, ignore the rest of the prompt.
+
+1. Determine if a food waste caddy is present in the image. A caddy is a RIGID small kitchen bin/container used to collect food/organic waste — it may be transparent or opaque, have a handle and/or lid, and often contains a plastic liner bag inside. 
+IMPORTANT: a flexible transparent plastic bag (even if it contains food waste) is NOT a caddy — do NOT detect it as one. A caddy must have a rigid, structured body.
 2. Detect ANY packaging inside the caddy (this includes BOTH hard packaging AND soft packaging):
    - Hard packaging: plastic bottles, aluminium cans, glass jars/bottles, rigid plastic tubs, etc.
    - Soft packaging: plastic film, soft plastic bags, snack wrappers, cling wrap, pouches/sachets, etc.
@@ -23,6 +25,7 @@ Tasks:
 
 Return ONLY a valid JSON object with EXACTLY this structure:
 {
+  "caddy_detected": true,
   "has_organic_food_waste": true,
   "food_waste_confidence": 0.0,
   "organics_contamination_present": true,
@@ -42,11 +45,12 @@ Return ONLY a valid JSON object with EXACTLY this structure:
       "color_confidence": 0.0,
       "bbox": [0, 0, 0, 0]
     }
-  ],${METRICS_JSON_FIELDS}
+  ]
 }
 
 Critical guidance for TRANSPARENT caddies (this is where you must be careful):
 - Only report items that are inside the caddy. Ignore objects outside/behind the caddy.
+- A flexible transparent plastic bag is NOT a caddy — set caddy_detected=false and stop.
 - Packaging and recyclables can be hard to see through transparent plastic. Actively look for cues even when the full object is not visible:
   - Hard containers (bottle/can/jar): circular cap, ridged cap edge, narrow neck, bottle shoulder curve, molded seams, barcode-like stripes, label blocks, can top ring silhouette, jar mouth/rim.
   - Soft plastics (film/wrappers/bags): crinkles/folds, glossy thin reflections, heat-sealed edges, torn corners, irregular shapes, printed graphics on thin film.
@@ -55,7 +59,8 @@ Critical guidance for TRANSPARENT caddies (this is where you must be careful):
 - IMPORTANT: treat ALL packaging/wrapping (including paper wraps/napkins/paper towels and soft plastic film/wrappers) as organics contamination to REMOVE unless it is clearly certified compostable in the image.
 
 Field rules:
-- has_organic_food_waste: true if ANY food or organic matter is visible. This includes raw/cooked food, fruit (whole or partial), vegetables, bread/pastries, peels/scraps, leftovers, tea bags, coffee grounds, eggshells, bones, and any other organic matter. Treat ALL food as food waste.
+- caddy_detected: true ONLY if a RIGID food waste caddy/bin is present (transparent or opaque, with or without lid/handle). A flexible transparent plastic bag is NOT a caddy. If not detected, return all other fields as empty/false/zero.
+- has_organic_food_waste: true if ANY food or organic matter is visible AND a caddy was detected. If caddy_detected is false, always set this to false. This includes raw/cooked food, fruit (whole or partial), vegetables, bread/pastries, peels/scraps, leftovers, tea bags, coffee grounds, eggshells, bones, and any other organic matter. Treat ALL food as food waste.
 - food_waste_confidence: 0.0-1.0 confidence for food waste detection.
 - IMPORTANT DE-DUPLICATION RULE (applies to organics_contamination_items, recyclable_items, and other_items):
   - Do NOT repeat the same real-world object multiple times.
@@ -81,7 +86,6 @@ Field rules:
 - recyclable_items: list EVERY recyclable item/packaging you can see inside the caddy (short phrases).
   If you are unsure whether something is recyclable, INCLUDE it anyway and describe it (e.g., "soft plastic wrapper/film", "paper/cardboard packaging", "plastic bottle/cap", "glass jar/bottle", "metal can").
 - other_items: items that are NOT food waste and NOT packaging/recyclables. Use best-guess brand/category/material/color + confidence + bbox.
-${METRICS_GUIDELINES}
 
 Return ONLY valid JSON. No markdown. No extra commentary.`;
 

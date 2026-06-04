@@ -1,5 +1,3 @@
-import { METRICS_JSON_FIELDS, METRICS_GUIDELINES } from './metrics.js';
-
 /**
  * Multi-object identification prompts (used for both images in the dual-image
  * Multi Object screen).
@@ -47,9 +45,7 @@ const V1 = `Analyze this image of a transparent bug container and identify absol
 - If the item is too far away from the camera just ignore it.
 - If you cannot identify a specific attribute (brand, category, material, or color), use "unknown" as the value, but try your best to identify all attributes.
 
-Return ONLY valid JSON object with a "products" array and these root fields:${METRICS_JSON_FIELDS}
-${METRICS_GUIDELINES}
-If no products are detected, return {"products": [], "ai_co2_kg": 0, "estimated_weight_kg": 0, "purity": 1}. Do not include any markdown formatting or additional text.`;
+Return ONLY valid JSON object with a "products" array. If no products are detected, return {"products": []}. Do not include any markdown formatting or additional text.`;
 
 const V2 = `Analyze this image of a transparent bug container and identify absolutely ALL daily consumer used products, bottles, containers, etc. visible inside the transparent bug. Return ONLY the requested fields.
 {
@@ -72,17 +68,14 @@ const V2 = `Analyze this image of a transparent bug container and identify absol
 - Return all the products in the image regardless of confidence score.
 - If an attribute is unknown, use "unknown".
 
-Return ONLY valid JSON object with a "products" array and these root fields:${METRICS_JSON_FIELDS}
-${METRICS_GUIDELINES}
-If no products are detected, return {"products": [], "ai_co2_kg": 0, "estimated_weight_kg": 0, "purity": 1}. Do not include any markdown formatting or additional text.`;
+Return ONLY valid JSON object with a "products" array. If no products are detected, return {"products": []}. Do not include any markdown formatting or additional text.`;
 
 const V3 = `List ALL products in the image and return ONLY category and material.
 {"products":[{"id":"unique_id_for_product","category":"product_category","category_confidence":0.0-1.0,"material":"material_type","material_confidence":0.0-1.0}]}
 - category must be one of: shampoo_bottle, beverage_bottle, edible_product, coffee_capsule, coffee, tes, drugs, cleaning_product, personal_hygiene_product.
 - material must be one of: plastic, glass, metal, paper, aluminum, leather, wood.
 - If unknown, use "unknown".
-Return ONLY JSON object with these root fields:${METRICS_JSON_FIELDS}
-${METRICS_GUIDELINES}`;
+Return ONLY JSON object.`;
 
 const V4 = `Estimate the approximate number of Nespresso capsules visible in this single image of a transparent bug container. We only need an approximate count, not an exact number. Also identify capsule brand, category, and material. Return ONLY valid JSON:
 {
@@ -93,9 +86,8 @@ const V4 = `Estimate the approximate number of Nespresso capsules visible in thi
   "category": "coffee_capsule",
   "category_confidence": 0.0-1.0,
   "material": "plastic|aluminum|paper|unknown",
-  "material_confidence": 0.0-1.0,${METRICS_JSON_FIELDS}
+  "material_confidence": 0.0-1.0
 }
-${METRICS_GUIDELINES}
 - Use lowercase brand names.
 - If unsure, use "unknown".
 - Return JSON only, no markdown or extra text.`;

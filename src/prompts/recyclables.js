@@ -1,5 +1,3 @@
-import { METRICS_JSON_FIELDS, METRICS_GUIDELINES } from './metrics.js';
-
 /**
  * Recyclables-in-transparent-bag prompt.
  *
@@ -8,16 +6,19 @@ import { METRICS_JSON_FIELDS, METRICS_GUIDELINES } from './metrics.js';
  */
 const PROMPT = `Analyze this single image of a transparent bag and determine recyclables and bio-waste contamination. Items must be inside a transparent bag.
 
+
+RULE: IF bag is not detected exist immateriality with "bag_detected": false, ignore the rest of the prompt.
+
 Return ONLY valid JSON with this structure:
 {
+  "bag_detected": true,
   "recyclables_present": true/false,
   "contamination_score": 0-10,
   "contamination_items": ["one short text per contamination source"],
-  "food_waste_items": ["short text per detected bio-waste/food waste item"],${METRICS_JSON_FIELDS}
+  "food_waste_items": ["short text per detected bio-waste/food waste item"]
 }
 
 Guidelines:
-${METRICS_GUIDELINES}
 - recyclables_present: true if any recyclable items are visible (plastic, aluminum, paper, glass, metal), false otherwise.
 -contamination_score:
  - 1 if ANY visible bio-waste/food waste is present
@@ -81,7 +82,7 @@ ANTI-MISS RULE (VERY IMPORTANT):
   - Prefer INCLUDING a likely food item rather than missing it.
 
 Return ONLY a valid JSON object.
-If no food waste is detected, return {"recyclables_present": false, "contamination_score": 10, "contamination_items": [], "food_waste_items": [], "ai_co2_kg": 0, "estimated_weight_kg": 0, "purity": 1}.
+If no food waste is detected, return {"bag_detected": true, "recyclables_present": false, "contamination_score": 10, "contamination_items": [], "food_waste_items": []}.
 Do not include any markdown or extra text.`;
 
 export const getRecyclablesPrompt = () => PROMPT;

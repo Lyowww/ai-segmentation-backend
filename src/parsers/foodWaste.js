@@ -3,7 +3,6 @@ import {
   numberOr,
   boolOr
 } from './common.js';
-import { attachAnalysisMetrics } from './metrics.js';
 
 /**
  * Intentionally broad regex — we prefer flagging plastic/paper/metal/glass
@@ -63,9 +62,12 @@ const normalizeOtherItem = (raw, index) => ({
 export const parseFoodWasteResponse = (content) => {
   const parsed = parseJsonResponse(content);
 
+  const caddyDetected = boolOr(parsed.caddy_detected, false);
+
   const baseResult = {
-    has_organic_food_waste: boolOr(parsed.has_organic_food_waste, false),
-    food_waste_confidence: numberOr(parsed.food_waste_confidence, 0),
+    caddy_detected: caddyDetected,
+    has_organic_food_waste: caddyDetected ? boolOr(parsed.has_organic_food_waste, false) : false,
+    food_waste_confidence: caddyDetected ? numberOr(parsed.food_waste_confidence, 0) : 0,
     organics_contamination_present: boolOr(parsed.organics_contamination_present, false),
     organics_contamination_items: Array.isArray(parsed.organics_contamination_items)
       ? parsed.organics_contamination_items
@@ -81,5 +83,5 @@ export const parseFoodWasteResponse = (content) => {
   baseResult.recyclables_present = derived.recyclables_present;
   baseResult.recyclable_items = derived.recyclable_items;
 
-  return attachAnalysisMetrics(baseResult, parsed, { kind: 'foodWaste' });
+  return baseResult;
 };
