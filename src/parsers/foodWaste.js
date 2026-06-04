@@ -3,6 +3,7 @@ import {
   numberOr,
   boolOr
 } from './common.js';
+import { attachAnalysisMetrics } from './metrics.js';
 
 /**
  * Intentionally broad regex — we prefer flagging plastic/paper/metal/glass
@@ -83,5 +84,5 @@ export const parseFoodWasteResponse = (content) => {
   baseResult.recyclables_present = derived.recyclables_present;
   baseResult.recyclable_items = derived.recyclable_items;
 
-  return baseResult;
+  return attachAnalysisMetrics(baseResult, parsed, { kind: 'foodWaste' });
 };

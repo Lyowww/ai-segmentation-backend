@@ -1,3 +1,5 @@
+import { METRICS_JSON_FIELDS, METRICS_GUIDELINES } from './metrics.js';
+
 /**
  * Food-waste caddy recognition prompt.
  *
@@ -45,7 +47,7 @@ Return ONLY a valid JSON object with EXACTLY this structure:
       "color_confidence": 0.0,
       "bbox": [0, 0, 0, 0]
     }
-  ]
+  ],${METRICS_JSON_FIELDS}
 }
 
 Critical guidance for TRANSPARENT caddies (this is where you must be careful):
@@ -86,6 +88,7 @@ Field rules:
 - recyclable_items: list EVERY recyclable item/packaging you can see inside the caddy (short phrases).
   If you are unsure whether something is recyclable, INCLUDE it anyway and describe it (e.g., "soft plastic wrapper/film", "paper/cardboard packaging", "plastic bottle/cap", "glass jar/bottle", "metal can").
 - other_items: items that are NOT food waste and NOT packaging/recyclables. Use best-guess brand/category/material/color + confidence + bbox.
+${METRICS_GUIDELINES}
 
 Return ONLY valid JSON. No markdown. No extra commentary.`;
 

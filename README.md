@@ -67,6 +67,20 @@ Every endpoint accepts `multipart/form-data` and returns the same envelope:
 }
 ```
 
+Every analysis `data` object also includes AI-estimated environmental metrics
+(see [src/parsers/metrics.js](src/parsers/metrics.js)):
+
+```jsonc
+{
+  "ai_co2_kg": 0.42,           // estimated CO2-equivalent (kg), or null
+  "estimated_weight_kg": 1.2,  // estimated total visible waste weight (kg), or null
+  "purity": 0.85               // stream sorting purity 0.0–1.0 (derived when omitted)
+}
+```
+
+Dual-image multi-object calls sum `ai_co2_kg` and `estimated_weight_kg` across
+both images and take the minimum `purity`.
+
 The `usage` object has this shape (see [src/utils/usage.js](src/utils/usage.js)):
 
 ```jsonc
@@ -328,12 +342,14 @@ server/
     │   ├── openai.js      # OpenAI chat.completions vision call
     │   └── gemini.js      # Gemini generateContent + code-fence stripping
     ├── prompts/
+    │   ├── metrics.js     # shared CO2/weight/purity JSON schema for vision prompts
     │   ├── singleImage.js # v1–v3
     │   ├── multiObject.js # v1–v4 (v4 = capsule group)
     │   ├── foodWaste.js
     │   └── recyclables.js
     ├── parsers/
     │   ├── common.js      # parseJsonResponse, extractArray, numberOr, …
+    │   ├── metrics.js     # ai_co2_kg, estimated_weight_kg, purity normalization
     │   ├── singleImage.js
     │   ├── multiObject.js # normalize + mergeProducts dedup logic
     │   ├── foodWaste.js   # includes deriveRecyclablesFromText safety net

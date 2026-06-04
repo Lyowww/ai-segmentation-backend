@@ -11,6 +11,7 @@ import {
   mergeProducts
 } from '../parsers/multiObject.js';
 import { mergeUsageSummaries } from '../utils/usage.js';
+import { extractMetricsFromContent, mergeAnalysisMetrics } from '../parsers/metrics.js';
 import {
   requireFile,
   requireProvider,
@@ -52,8 +53,9 @@ export const analyzeMultiObject = async (req, res, next) => {
       const file = requireFile(getUploadedFile(req, 'image1'), 'image1');
       const { content, usage } = await compressAndCall({ provider, prompt, file });
       const capsuleGroup = parseCapsuleGroupResponse(content);
+      const metrics = extractMetricsFromContent(content, { kind: 'multi' });
       res.json({
-        data: { capsuleGroup },
+        data: { capsuleGroup, ...metrics },
         usage
       });
       return;
@@ -71,8 +73,13 @@ export const analyzeMultiObject = async (req, res, next) => {
     const image2Results = parseMultiObjectImageResponse(result2.content, 'img2');
     const merged = mergeProducts(image1Results, image2Results);
 
+    const metrics = mergeAnalysisMetrics([
+      extractMetricsFromContent(result1.content, { kind: 'multi' }),
+      extractMetricsFromContent(result2.content, { kind: 'multi' })
+    ]);
+
     res.json({
-      data: { merged, image1Results, image2Results },
+      data: { merged, image1Results, image2Results, ...metrics },
       usage: mergeUsageSummaries([result1.usage, result2.usage])
     });
   } catch (error) {
