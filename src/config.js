@@ -22,7 +22,6 @@ const parsePositiveInt = (value, fallback) => {
 
 export const config = {
   port: parsePositiveInt(process.env.PORT, 3001),
-  corsOrigin: optionalString(process.env.CORS_ORIGIN, 'http://localhost:3000'),
   maxUploadBytes: parsePositiveInt(process.env.MAX_UPLOAD_BYTES, 15 * 1024 * 1024),
   openai: {
     apiKey: requireString(process.env.OPENAI_API_KEY, 'OPENAI_API_KEY'),

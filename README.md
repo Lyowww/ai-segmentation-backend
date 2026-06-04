@@ -45,7 +45,6 @@ missing (see [src/config.js](src/config.js)).
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
 | `PORT` | no | `3001` | HTTP port the Express server binds to. |
-| `CORS_ORIGIN` | no | `http://localhost:3000` | Allowed origin for browser requests. |
 | `MAX_UPLOAD_BYTES` | no | `15728640` (15 MiB) | Per-file upload size limit enforced by multer. |
 | `OPENAI_API_KEY` | **yes** | — | OpenAI API key. |
 | `OPENAI_MODEL` | no | `gpt-4.1` | OpenAI model id used for vision calls. |
