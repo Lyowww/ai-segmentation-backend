@@ -20,8 +20,14 @@ const parsePositiveInt = (value, fallback) => {
   return parsed;
 };
 
+const isVercel = process.env.VERCEL === '1' || process.env.VERCEL === 'true';
+const defaultMaxUploadBytes = isVercel ? 2 * 1024 * 1024 : 15 * 1024 * 1024;
+
 export const config = {
   port: parsePositiveInt(process.env.PORT, 3001),
+  // Vercel rejects request bodies above 4.5 MiB before they reach this app.
+  maxUploadBytes: parsePositiveInt(process.env.MAX_UPLOAD_BYTES, defaultMaxUploadBytes),
+  imageFetchTimeoutMs: parsePositiveInt(process.env.IMAGE_FETCH_TIMEOUT_MS, 15_000),
   openai: {
     apiKey: requireString(process.env.OPENAI_API_KEY, 'OPENAI_API_KEY'),
     model: optionalString(process.env.OPENAI_MODEL, 'gpt-4.1')

@@ -2,21 +2,25 @@ import { compressImage, COMPRESSION_PRESETS } from '../compression.js';
 import { callVision } from '../services/ai.js';
 import { getRecyclablesPrompt } from '../prompts/recyclables.js';
 import { parseRecyclablesResponse } from '../parsers/recyclables.js';
-import { requireFile, requireProvider } from '../middleware/validate.js';
+import { resolveImageInput } from '../utils/imageSource.js';
+import { requireProvider } from '../middleware/validate.js';
 
 const RECYCLABLES_TEMPERATURE = 0;
 
 export const analyzeRecyclables = async (req, res, next) => {
   try {
-    const file = requireFile(req.file, 'image');
     const provider = requireProvider(req.body.provider);
 
-    const { buffer, mimeType } = await compressImage(file.buffer, COMPRESSION_PRESETS.recyclables);
+    const { buffer, mimeType } = await resolveImageInput(req, {
+      fieldName: 'image',
+      file: req.file
+    });
+    const compressed = await compressImage(buffer, COMPRESSION_PRESETS.recyclables);
 
     const { content, usage } = await callVision({
       provider,
-      imageBuffer: buffer,
-      mimeType,
+      imageBuffer: compressed.buffer,
+      mimeType: compressed.mimeType,
       prompt: getRecyclablesPrompt(),
       temperature: RECYCLABLES_TEMPERATURE
     });

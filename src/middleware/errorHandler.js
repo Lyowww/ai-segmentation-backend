@@ -1,6 +1,9 @@
 import multer from 'multer';
 
+import { config } from '../config.js';
+
 const STATUS_BY_CODE = {
+  LIMIT_FILE_SIZE: 413,
   LIMIT_FILE_COUNT: 400,
   LIMIT_UNEXPECTED_FILE: 400
 };
@@ -16,10 +19,14 @@ const sanitizeMessage = (message) => {
 export const errorHandler = (err, _req, res, _next) => {
   if (err instanceof multer.MulterError) {
     const status = STATUS_BY_CODE[err.code] || 400;
+    const limitMb = (config.maxUploadBytes / (1024 * 1024)).toFixed(1);
+    const message = err.code === 'LIMIT_FILE_SIZE'
+      ? `File is too large (max ${limitMb} MiB per image). Compress on the client and send imageData, or upload to storage and send imageUrl.`
+      : err.message;
     res.status(status).json({
       error: {
         code: err.code,
-        message: err.message
+        message
       }
     });
     return;

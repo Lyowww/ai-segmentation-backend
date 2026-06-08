@@ -12,29 +12,26 @@ import {
 } from '../parsers/multiObject.js';
 import { mergeUsageSummaries } from '../utils/usage.js';
 import { extractMetricsFromContent, mergeAnalysisMetrics } from '../parsers/metrics.js';
-import {
-  requireFile,
-  requireProvider,
-  requirePromptVersion
-} from '../middleware/validate.js';
+import { resolveImageInput } from '../utils/imageSource.js';
+import { requireProvider, requirePromptVersion } from '../middleware/validate.js';
 
 const MULTI_OBJECT_TEMPERATURE = 0;
 
-const compressAndCall = async ({ provider, prompt, file }) => {
-  const { buffer, mimeType } = await compressImage(file.buffer, COMPRESSION_PRESETS.multiObject);
+const compressAndCall = async ({ provider, prompt, buffer, mimeType }) => {
+  const compressed = await compressImage(buffer, COMPRESSION_PRESETS.multiObject);
   return callVision({
     provider,
-    imageBuffer: buffer,
-    mimeType,
+    imageBuffer: compressed.buffer,
+    mimeType: compressed.mimeType,
     prompt,
     temperature: MULTI_OBJECT_TEMPERATURE
   });
 };
 
-const getUploadedFile = (req, fieldName) => {
+const resolveUploadedImage = async (req, fieldName) => {
   const files = req.files?.[fieldName];
-  if (Array.isArray(files) && files.length > 0) return files[0];
-  return null;
+  const file = Array.isArray(files) && files.length > 0 ? files[0] : null;
+  return resolveImageInput(req, { fieldName, file });
 };
 
 export const analyzeMultiObject = async (req, res, next) => {
@@ -50,8 +47,13 @@ export const analyzeMultiObject = async (req, res, next) => {
 
     if (isCapsule) {
       // v4 only counts capsules in image1; image2 is ignored if provided.
-      const file = requireFile(getUploadedFile(req, 'image1'), 'image1');
-      const { content, usage } = await compressAndCall({ provider, prompt, file });
+      const image1 = await resolveUploadedImage(req, 'image1');
+      const { content, usage } = await compressAndCall({
+        provider,
+        prompt,
+        buffer: image1.buffer,
+        mimeType: image1.mimeType
+      });
       const capsuleGroup = parseCapsuleGroupResponse(content);
       const metrics = extractMetricsFromContent(content, { kind: 'multi' });
       res.json({
@@ -61,12 +63,24 @@ export const analyzeMultiObject = async (req, res, next) => {
       return;
     }
 
-    const file1 = requireFile(getUploadedFile(req, 'image1'), 'image1');
-    const file2 = requireFile(getUploadedFile(req, 'image2'), 'image2');
+    const [image1, image2] = await Promise.all([
+      resolveUploadedImage(req, 'image1'),
+      resolveUploadedImage(req, 'image2')
+    ]);
 
     const [result1, result2] = await Promise.all([
-      compressAndCall({ provider, prompt, file: file1 }),
-      compressAndCall({ provider, prompt, file: file2 })
+      compressAndCall({
+        provider,
+        prompt,
+        buffer: image1.buffer,
+        mimeType: image1.mimeType
+      }),
+      compressAndCall({
+        provider,
+        prompt,
+        buffer: image2.buffer,
+        mimeType: image2.mimeType
+      })
     ]);
 
     const image1Results = parseMultiObjectImageResponse(result1.content, 'img1');
