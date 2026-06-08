@@ -33,6 +33,10 @@ export const dualImageUpload = upload.fields([
   { name: 'image2', maxCount: 1 }
 ]);
 
+export const multiImage1Upload = upload.single('image1');
+
+export const multiImage2Upload = upload.single('image2');
+
 /**
  * Skip multer for JSON requests so clients can POST compressed base64 fields
  * (`imageData`, `image1Data`, …) without multipart overhead.

@@ -30,3 +30,18 @@ export const requireFile = (file, fieldName) => {
   }
   return file;
 };
+
+export const parseJsonBodyField = (value, fieldName) => {
+  if (value === undefined || value === null) {
+    throw badRequest(`Missing required field: ${fieldName}.`, 'MISSING_FIELD');
+  }
+  if (typeof value === 'object') return value;
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    throw badRequest(`Invalid ${fieldName}: expected JSON.`, 'INVALID_FIELD');
+  }
+  try {
+    return JSON.parse(value);
+  } catch {
+    throw badRequest(`Invalid ${fieldName}: expected JSON.`, 'INVALID_FIELD');
+  }
+};
