@@ -1,7 +1,5 @@
 import multer from 'multer';
 
-import { config } from '../config.js';
-
 const ALLOWED_MIME_PREFIX = 'image/';
 
 const fileFilter = (_req, file, cb) => {
@@ -20,7 +18,6 @@ const storage = multer.memoryStorage();
 const upload = multer({
   storage,
   limits: {
-    fileSize: config.maxUploadBytes,
     files: 2
   },
   fileFilter

@@ -1,7 +1,6 @@
 import multer from 'multer';
 
 const STATUS_BY_CODE = {
-  LIMIT_FILE_SIZE: 413,
   LIMIT_FILE_COUNT: 400,
   LIMIT_UNEXPECTED_FILE: 400
 };
