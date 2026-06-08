@@ -49,7 +49,7 @@ missing (see [src/config.js](src/config.js)).
 | `OPENAI_API_KEY` | **yes** | — | OpenAI API key. |
 | `OPENAI_MODEL` | no | `gpt-4.1` | OpenAI model id used for vision calls. |
 | `GEMINI_API_KEY` | **yes** | — | Google Generative AI key. |
-| `GEMINI_MODEL` | no | `gemini-3-pro-preview` | Gemini model id used for vision calls. |
+| `GEMINI_MODEL` | no | `gemini-2.5-pro` | Gemini model id used for vision calls. |
 
 `server/.env` is git-ignored — never commit real keys.
 

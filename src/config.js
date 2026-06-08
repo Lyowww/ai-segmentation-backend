@@ -29,6 +29,6 @@ export const config = {
   },
   gemini: {
     apiKey: requireString(process.env.GEMINI_API_KEY, 'GEMINI_API_KEY'),
-    model: optionalString(process.env.GEMINI_MODEL, 'gemini-3-pro-preview')
+    model: optionalString(process.env.GEMINI_MODEL, 'gemini-2.5-pro')
   }
 };
