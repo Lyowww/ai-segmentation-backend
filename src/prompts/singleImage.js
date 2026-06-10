@@ -67,7 +67,7 @@ ${METRICS_GUIDELINES}
   Important: paper wrapping around food (e.g., sandwich paper wrap) should be INCLUDED here so the user knows to exclude it from organics unless clearly labeled compostable.
 - If a container appears in containers_with_food_or_drink, it MUST also appear in products (as a product/container).
 
-Return ONLY valid JSON object. If no products are detected, return {"products": [], "food_waste_items": [], "containers_with_food_or_drink": [], "organics_contamination_present": false, "organics_contamination_items": [], "ai_co2_kg": 0, "estimated_weight_kg": 0, "purity": 1}. Do not include any markdown formatting or additional text.`;
+Return ONLY valid JSON object. If no products are detected, return {"products": [], "food_waste_items": [], "containers_with_food_or_drink": [], "organics_contamination_present": false, "organics_contamination_items": [], "ai_co2_kg": 0, "estimated_weight_kg": 0}. Do not include any markdown formatting or additional text.`;
 
 const V2 = `Analyze this image and identify ALL products/bottles/containers visible. Return ONLY the requested fields.
 {
@@ -118,7 +118,7 @@ ${METRICS_GUIDELINES}
   Important: paper wrapping around food (e.g., sandwich paper wrap) should be INCLUDED here so the user knows to exclude it from organics unless it is clearly labeled "certified compostable" in the image.
 - If a container appears in containers_with_food_or_drink, it MUST also appear in products (as a product/container).
 
-Return ONLY valid JSON object. If no products are detected, return {"products": [], "food_waste_items": [], "containers_with_food_or_drink": [], "organics_contamination_present": false, "organics_contamination_items": [], "ai_co2_kg": 0, "estimated_weight_kg": 0, "purity": 1}. Do not include any markdown formatting or additional text.`;
+Return ONLY valid JSON object. If no products are detected, return {"products": [], "food_waste_items": [], "containers_with_food_or_drink": [], "organics_contamination_present": false, "organics_contamination_items": [], "ai_co2_kg": 0, "estimated_weight_kg": 0}. Do not include any markdown formatting or additional text.`;
 
 const V3 = `List ALL products in the image and return ONLY category and material.
 {"products":[{"id":"unique_id_for_product","category":"product_category","category_confidence":0.0-1.0,"material":"material_type","material_confidence":0.0-1.0}]}
@@ -145,7 +145,7 @@ ${METRICS_GUIDELINES}
 - organics_contamination_items: list EVERY visible packaging/wrapping/non-organic item that a user should remove before using the organic bin. Include "sandwich paper wrap" if present.
 - If a container appears in containers_with_food_or_drink, it MUST also appear in products.
 
-Return ONLY JSON object. If no products are detected, include "ai_co2_kg": 0, "estimated_weight_kg": 0, "purity": 1.`;
+Return ONLY JSON object. If no products are detected, include "ai_co2_kg": 0, "estimated_weight_kg": 0.`;
 
 const PROMPTS = {
   v1: V1,

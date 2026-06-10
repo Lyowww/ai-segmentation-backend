@@ -46,7 +46,6 @@ export const parseSingleImageResponse = (content) => {
         ? parsed.organics_contamination_items
         : []
     },
-    parsed,
-    { kind: 'single' }
+    parsed
   );
 };

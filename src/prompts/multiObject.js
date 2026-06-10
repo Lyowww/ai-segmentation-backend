@@ -49,7 +49,7 @@ const V1 = `Analyze this image of a transparent bug container and identify absol
 
 Return ONLY valid JSON object with a "products" array and these root fields:${METRICS_JSON_FIELDS}
 ${METRICS_GUIDELINES}
-If no products are detected, return {"products": [], "ai_co2_kg": 0, "estimated_weight_kg": 0, "purity": 1}. Do not include any markdown formatting or additional text.`;
+If no products are detected, return {"products": [], "ai_co2_kg": 0, "estimated_weight_kg": 0}. Do not include any markdown formatting or additional text.`;
 
 const V2 = `Analyze this image of a transparent bug container and identify absolutely ALL daily consumer used products, bottles, containers, etc. visible inside the transparent bug. Return ONLY the requested fields.
 {
@@ -74,7 +74,7 @@ const V2 = `Analyze this image of a transparent bug container and identify absol
 
 Return ONLY valid JSON object with a "products" array and these root fields:${METRICS_JSON_FIELDS}
 ${METRICS_GUIDELINES}
-If no products are detected, return {"products": [], "ai_co2_kg": 0, "estimated_weight_kg": 0, "purity": 1}. Do not include any markdown formatting or additional text.`;
+If no products are detected, return {"products": [], "ai_co2_kg": 0, "estimated_weight_kg": 0}. Do not include any markdown formatting or additional text.`;
 
 const V3 = `List ALL products in the image and return ONLY category and material.
 {"products":[{"id":"unique_id_for_product","category":"product_category","category_confidence":0.0-1.0,"material":"material_type","material_confidence":0.0-1.0}]}

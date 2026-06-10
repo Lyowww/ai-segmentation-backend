@@ -85,7 +85,7 @@ ANTI-MISS RULE (VERY IMPORTANT):
   - Prefer INCLUDING a likely food item rather than missing it.
 
 Return ONLY a valid JSON object.
-If no food waste is detected, return {"bag_detected": true, "recyclables_present": false, "contamination_score": 10, "contamination_items": [], "food_waste_items": [], "ai_co2_kg": 0, "estimated_weight_kg": 0, "purity": 1}.
+If no food waste is detected, return {"bag_detected": true, "recyclables_present": false, "contamination_score": 10, "contamination_items": [], "food_waste_items": [], "ai_co2_kg": 0, "estimated_weight_kg": 0}.
 Do not include any markdown or extra text.`;
 
 export const getRecyclablesPrompt = () => PROMPT;

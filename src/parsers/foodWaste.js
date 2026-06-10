@@ -84,5 +84,5 @@ export const parseFoodWasteResponse = (content) => {
   baseResult.recyclables_present = derived.recyclables_present;
   baseResult.recyclable_items = derived.recyclable_items;
 
-  return attachAnalysisMetrics(baseResult, parsed, { kind: 'foodWaste' });
+  return attachAnalysisMetrics(baseResult, parsed);
 };

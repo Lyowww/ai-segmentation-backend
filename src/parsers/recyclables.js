@@ -45,7 +45,6 @@ export const parseRecyclablesResponse = (content) => {
         typeof parsed.contamination_reason === 'string' ? parsed.contamination_reason : 'unknown',
       food_waste_items: Array.isArray(parsed.food_waste_items) ? parsed.food_waste_items : []
     },
-    parsed,
-    { kind: 'recyclables' }
+    parsed
   );
 };
