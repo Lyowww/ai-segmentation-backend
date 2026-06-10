@@ -12,29 +12,127 @@ import {
 } from '../parsers/multiObject.js';
 import { mergeUsageSummaries } from '../utils/usage.js';
 import { extractMetricsFromContent, mergeAnalysisMetrics } from '../parsers/metrics.js';
+import { resolveImageInput } from '../utils/imageSource.js';
 import {
-  requireFile,
   requireProvider,
-  requirePromptVersion
+  requirePromptVersion,
+  parseJsonBodyField
 } from '../middleware/validate.js';
 
 const MULTI_OBJECT_TEMPERATURE = 0;
 
-const compressAndCall = async ({ provider, prompt, file }) => {
-  const { buffer, mimeType } = await compressImage(file.buffer, COMPRESSION_PRESETS.multiObject);
+const compressAndCall = async ({ provider, prompt, buffer, mimeType }) => {
+  const compressed = await compressImage(buffer, COMPRESSION_PRESETS.multiObject);
   return callVision({
     provider,
-    imageBuffer: buffer,
-    mimeType,
+    imageBuffer: compressed.buffer,
+    mimeType: compressed.mimeType,
     prompt,
     temperature: MULTI_OBJECT_TEMPERATURE
   });
 };
 
-const getUploadedFile = (req, fieldName) => {
-  const files = req.files?.[fieldName];
-  if (Array.isArray(files) && files.length > 0) return files[0];
-  return null;
+const analyzeImage1 = async ({ provider, prompt, promptVersion, image1 }) => {
+  const { content, usage } = await compressAndCall({
+    provider,
+    prompt,
+    buffer: image1.buffer,
+    mimeType: image1.mimeType
+  });
+
+  if (isMultiObjectCapsuleVersion(promptVersion)) {
+    const capsuleGroup = parseCapsuleGroupResponse(content);
+    const metrics = extractMetricsFromContent(content);
+    return {
+      data: { capsuleGroup, ...metrics },
+      usage
+    };
+  }
+
+  const image1Results = parseMultiObjectImageResponse(content, 'img1');
+  const metrics = extractMetricsFromContent(content);
+  return {
+    data: { image1Results, ...metrics },
+    usage
+  };
+};
+
+const analyzeImage2AndMerge = async ({
+  provider,
+  prompt,
+  image1Results,
+  usage1,
+  metrics1,
+  image2
+}) => {
+  const { content, usage: usage2 } = await compressAndCall({
+    provider,
+    prompt,
+    buffer: image2.buffer,
+    mimeType: image2.mimeType
+  });
+
+  const image2Results = parseMultiObjectImageResponse(content, 'img2');
+  const merged = mergeProducts(image1Results, image2Results);
+  const metrics2 = extractMetricsFromContent(content);
+  const metrics = mergeAnalysisMetrics([metrics1, metrics2]);
+
+  return {
+    data: { merged, image1Results, image2Results, ...metrics },
+    usage: mergeUsageSummaries([usage1, usage2])
+  };
+};
+
+export const analyzeMultiObjectImage1 = async (req, res, next) => {
+  try {
+    const provider = requireProvider(req.body.provider);
+    const promptVersion = requirePromptVersion(
+      req.body.promptVersion || 'v1',
+      MULTI_OBJECT_PROMPT_VERSIONS
+    );
+    const prompt = getMultiObjectPrompt(promptVersion);
+    const image1 = await resolveImageInput(req, { fieldName: 'image1', file: req.file });
+    const result = await analyzeImage1({ provider, prompt, promptVersion, image1 });
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const analyzeMultiObjectImage2 = async (req, res, next) => {
+  try {
+    const provider = requireProvider(req.body.provider);
+    const promptVersion = requirePromptVersion(
+      req.body.promptVersion || 'v1',
+      MULTI_OBJECT_PROMPT_VERSIONS
+    );
+
+    if (isMultiObjectCapsuleVersion(promptVersion)) {
+      const error = new Error('promptVersion v4 only needs /api/analyze/multi/image1.');
+      error.code = 'INVALID_PROMPT_VERSION';
+      error.status = 400;
+      throw error;
+    }
+
+    const prompt = getMultiObjectPrompt(promptVersion);
+    const image1Results = parseJsonBodyField(req.body.image1Results, 'image1Results');
+    const usage1 = parseJsonBodyField(req.body.usage1, 'usage1');
+    const metrics1 = req.body.metrics1
+      ? parseJsonBodyField(req.body.metrics1, 'metrics1')
+      : {};
+    const image2 = await resolveImageInput(req, { fieldName: 'image2', file: req.file });
+    const result = await analyzeImage2AndMerge({
+      provider,
+      prompt,
+      image1Results,
+      usage1,
+      metrics1,
+      image2
+    });
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const analyzeMultiObject = async (req, res, next) => {
@@ -48,39 +146,27 @@ export const analyzeMultiObject = async (req, res, next) => {
     const isCapsule = isMultiObjectCapsuleVersion(promptVersion);
     const prompt = getMultiObjectPrompt(promptVersion);
 
+    const image1File = req.files?.image1?.[0] ?? null;
+    const image2File = req.files?.image2?.[0] ?? null;
+    const image1 = await resolveImageInput(req, { fieldName: 'image1', file: image1File });
+
     if (isCapsule) {
-      // v4 only counts capsules in image1; image2 is ignored if provided.
-      const file = requireFile(getUploadedFile(req, 'image1'), 'image1');
-      const { content, usage } = await compressAndCall({ provider, prompt, file });
-      const capsuleGroup = parseCapsuleGroupResponse(content);
-      const metrics = extractMetricsFromContent(content);
-      res.json({
-        data: { capsuleGroup, ...metrics },
-        usage
-      });
+      const result = await analyzeImage1({ provider, prompt, promptVersion, image1 });
+      res.json(result);
       return;
     }
 
-    const file1 = requireFile(getUploadedFile(req, 'image1'), 'image1');
-    const file2 = requireFile(getUploadedFile(req, 'image2'), 'image2');
-
-    const [result1, result2] = await Promise.all([
-      compressAndCall({ provider, prompt, file: file1 }),
-      compressAndCall({ provider, prompt, file: file2 })
-    ]);
-
-    const image1Results = parseMultiObjectImageResponse(result1.content, 'img1');
-    const image2Results = parseMultiObjectImageResponse(result2.content, 'img2');
-    const merged = mergeProducts(image1Results, image2Results);
-    const metrics = mergeAnalysisMetrics([
-      extractMetricsFromContent(result1.content),
-      extractMetricsFromContent(result2.content)
-    ]);
-
-    res.json({
-      data: { merged, image1Results, image2Results, ...metrics },
-      usage: mergeUsageSummaries([result1.usage, result2.usage])
+    const image2 = await resolveImageInput(req, { fieldName: 'image2', file: image2File });
+    const step1 = await analyzeImage1({ provider, prompt, promptVersion, image1 });
+    const result = await analyzeImage2AndMerge({
+      provider,
+      prompt,
+      image1Results: step1.data.image1Results,
+      usage1: step1.usage,
+      metrics1: step1.data,
+      image2
     });
+    res.json(result);
   } catch (error) {
     next(error);
   }

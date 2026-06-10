@@ -2,21 +2,25 @@ import { compressImage, COMPRESSION_PRESETS } from '../compression.js';
 import { callVision } from '../services/ai.js';
 import { getFoodWastePrompt } from '../prompts/foodWaste.js';
 import { parseFoodWasteResponse } from '../parsers/foodWaste.js';
-import { requireFile, requireProvider } from '../middleware/validate.js';
+import { resolveImageInput } from '../utils/imageSource.js';
+import { requireProvider } from '../middleware/validate.js';
 
 const FOOD_WASTE_TEMPERATURE = 0;
 
 export const analyzeFoodWaste = async (req, res, next) => {
   try {
-    const file = requireFile(req.file, 'image');
     const provider = requireProvider(req.body.provider);
 
-    const { buffer, mimeType } = await compressImage(file.buffer, COMPRESSION_PRESETS.foodWaste);
+    const { buffer, mimeType } = await resolveImageInput(req, {
+      fieldName: 'image',
+      file: req.file
+    });
+    const compressed = await compressImage(buffer, COMPRESSION_PRESETS.foodWaste);
 
     const { content, usage } = await callVision({
       provider,
-      imageBuffer: buffer,
-      mimeType,
+      imageBuffer: compressed.buffer,
+      mimeType: compressed.mimeType,
       prompt: getFoodWastePrompt(),
       temperature: FOOD_WASTE_TEMPERATURE
     });
