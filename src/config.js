@@ -20,6 +20,11 @@ const parsePositiveInt = (value, fallback) => {
   return parsed;
 };
 
+const parseCommaList = (value, fallback = []) => {
+  if (typeof value !== 'string' || value.trim().length === 0) return fallback;
+  return value.split(',').map((item) => item.trim()).filter(Boolean);
+};
+
 const isVercel = process.env.VERCEL === '1' || process.env.VERCEL === 'true';
 const defaultMaxUploadBytes = isVercel ? 2 * 1024 * 1024 : 15 * 1024 * 1024;
 
@@ -33,6 +38,12 @@ export const config = {
   },
   gemini: {
     apiKey: requireString(process.env.GEMINI_API_KEY, 'GEMINI_API_KEY'),
-    model: optionalString(process.env.GEMINI_MODEL, 'gemini-3-pro-preview')
+    model: optionalString(process.env.GEMINI_MODEL, 'gemini-2.5-flash'),
+    fallbackModels: parseCommaList(process.env.GEMINI_FALLBACK_MODELS, [
+      'gemini-2.0-flash',
+      'gemini-2.5-pro'
+    ]),
+    maxRetries: parsePositiveInt(process.env.GEMINI_MAX_RETRIES, 3),
+    retryBaseMs: parsePositiveInt(process.env.GEMINI_RETRY_BASE_MS, 1000)
   }
 };

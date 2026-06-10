@@ -11,6 +11,17 @@ const getClient = () => {
   return cachedClient;
 };
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const uniqueModels = (models) => [...new Set(models.filter(Boolean))];
+
+const getErrorStatus = (error) => error?.status ?? error?.cause?.status ?? null;
+
+const isRetryableGeminiError = (error) => {
+  const status = getErrorStatus(error);
+  return status === 429 || status === 500 || status === 502 || status === 503;
+};
+
 const wrapUpstreamError = (error) => {
   const wrapped = new Error('Gemini request failed.');
   wrapped.code = 'GEMINI_UPSTREAM_ERROR';
@@ -30,36 +41,19 @@ const stripMarkdownFences = (text) => {
   return trimmed;
 };
 
-/**
- * Call the Google Gemini multimodal endpoint with a single image. Strips
- * any markdown code fences Gemini may wrap around its JSON output before
- * returning.
- *
- * @param {object} params
- * @param {Buffer} params.imageBuffer  Compressed image bytes
- * @param {string} params.mimeType     MIME type of the compressed image
- * @param {string} params.prompt       Full prompt text
- * @returns {Promise<{ content: string, usage: object, model: string }>}
- */
-export const callGeminiVision = async ({ imageBuffer, mimeType, prompt }) => {
+const generateWithModel = async ({ model, imageBuffer, mimeType, prompt }) => {
   const client = getClient();
-  const model = config.gemini.model;
   const generativeModel = client.getGenerativeModel({ model });
 
-  let result;
-  try {
-    result = await generativeModel.generateContent([
-      prompt,
-      {
-        inlineData: {
-          data: imageBuffer.toString('base64'),
-          mimeType
-        }
+  const result = await generativeModel.generateContent([
+    prompt,
+    {
+      inlineData: {
+        data: imageBuffer.toString('base64'),
+        mimeType
       }
-    ]);
-  } catch (error) {
-    throw wrapUpstreamError(error);
-  }
+    }
+  ]);
 
   const response = await result.response;
   const rawText = typeof response?.text === 'function' ? response.text() : null;
@@ -75,4 +69,41 @@ export const callGeminiVision = async ({ imageBuffer, mimeType, prompt }) => {
     usage: response,
     model
   };
+};
+
+/**
+ * Call the Google Gemini multimodal endpoint with a single image. Retries
+ * transient overload errors (429/503) and falls back to alternate models
+ * when the primary model stays unavailable.
+ */
+export const callGeminiVision = async ({ imageBuffer, mimeType, prompt }) => {
+  const models = uniqueModels([
+    config.gemini.model,
+    ...config.gemini.fallbackModels
+  ]);
+
+  let lastError = null;
+
+  for (const model of models) {
+    for (let attempt = 0; attempt <= config.gemini.maxRetries; attempt++) {
+      try {
+        return await generateWithModel({ model, imageBuffer, mimeType, prompt });
+      } catch (error) {
+        lastError = error;
+
+        if (!isRetryableGeminiError(error)) {
+          throw wrapUpstreamError(error);
+        }
+
+        if (attempt < config.gemini.maxRetries) {
+          await sleep(config.gemini.retryBaseMs * (2 ** attempt));
+          continue;
+        }
+
+        break;
+      }
+    }
+  }
+
+  throw wrapUpstreamError(lastError);
 };
