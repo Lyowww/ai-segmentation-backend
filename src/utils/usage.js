@@ -7,7 +7,8 @@
 const PRICING_PER_MILLION = {
   'gpt-4o': { input: 5, output: 15, currency: 'USD' },
   'gpt-4.1': { input: 5, output: 15, currency: 'USD' },
-  'gemini-2.5-pro': { input: 1.25, output: 10, currency: 'USD' }
+  'gemini-2.5-pro': { input: 1.25, output: 10, currency: 'USD' },
+  'gemini-3-pro-preview': { input: 3.5, output: 10.5, currency: 'USD' }
 };
 
 const finiteOrNull = (value) => (Number.isFinite(value) ? value : null);

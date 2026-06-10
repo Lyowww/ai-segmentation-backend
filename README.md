@@ -49,15 +49,24 @@ missing (see [src/config.js](src/config.js)).
 | `OPENAI_API_KEY` | **yes** | — | OpenAI API key. |
 | `OPENAI_MODEL` | no | `gpt-4.1` | OpenAI model id used for vision calls. |
 | `GEMINI_API_KEY` | **yes** | — | Google Generative AI key. |
-| `GEMINI_MODEL` | no | `gemini-2.5-pro` | Gemini model id used for vision calls. |
+| `GEMINI_MODEL` | no | `gemini-2.5-pro` | Gemini model id used for vision calls (`gemini-3-pro-preview` also supported). |
+| `IMAGE_FETCH_TIMEOUT_MS` | no | `15000` | Timeout when fetching images from `imageUrl` / `image1Url` / `image2Url`. |
 
 `server/.env` is git-ignored — never commit real keys.
+
+On Vercel, `MAX_UPLOAD_BYTES` defaults to 2 MiB (platform request cap is 4.5 MiB).
+Locally it defaults to 15 MiB unless overridden.
 
 ---
 
 ## Request / response contract
 
-Every endpoint accepts `multipart/form-data` and returns the same envelope:
+Every endpoint accepts `multipart/form-data` or `application/json` and returns the
+same envelope. Instead of uploading a file you can send compressed base64
+(`imageData`, `image1Data`, `image2Data`) or a public HTTPS URL
+(`imageUrl`, `image1Url`, `image2Url`) — see
+[src/utils/imageSource.js](src/utils/imageSource.js). JSON bodies skip multer so
+they stay under Vercel's 4.5 MiB payload limit.
 
 ```jsonc
 {
@@ -141,7 +150,9 @@ Single-image product identification with optional bounding boxes.
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `image` | file | yes | Image of the scene. |
+| `image` | file | yes* | Image of the scene. |
+| `imageData` | string | yes* | Base64 or data-URL image (JSON or form field). |
+| `imageUrl` | string | yes* | Public HTTPS image URL (JSON or form field). |
 | `provider` | string | yes | `openai` or `gemini`. |
 | `promptVersion` | string | no (default `v1`) | One of `v1`, `v2`, `v3`. |
 
@@ -169,6 +180,8 @@ Single-image product identification with optional bounding boxes.
   "organics_contamination_items": ["plastic wrapper"]
 }
 ```
+
+\* Provide exactly one of `image`, `imageData`, or `imageUrl`.
 
 Temperature: `0.1`. Compression preset: `768 px · JPEG · q=0.18`.
 
@@ -223,8 +236,29 @@ from the original client-side logic to preserve deduplication behavior — see
 ```
 
 Temperature: `0`. Compression preset: `512 px · WebP · q=0.70`. Standard cases
-call the vision API twice in parallel via `Promise.all`; usage is combined with
+call the vision API twice sequentially; usage is combined with
 `mergeUsageSummaries`.
+
+**Vercel / large payloads.** Raw dual file uploads often exceed Vercel's 4.5 MiB
+request cap. Use the split flow below or send `image1Data` / `image2Data` (or
+URLs) as JSON instead.
+
+### `POST /api/analyze/multi/image1`
+
+Step 1 of split dual-image analysis — send only the first image.
+
+**Form / JSON fields:** `image1` or `image1Data` or `image1Url`, plus `provider`
+and optional `promptVersion`.
+
+**Response `data`:** `{ image1Results, …metrics }` for v1–v3, or
+`{ capsuleGroup, …metrics }` for v4.
+
+### `POST /api/analyze/multi/image2`
+
+Step 2 — send `image2` (or `image2Data` / `image2Url`) plus `image1Results` and
+`usage1` from step 1. Not used for `promptVersion=v4`.
+
+**Response `data`:** same shape as the legacy `/analyze/multi` endpoint.
 
 ---
 
@@ -285,14 +319,16 @@ intentionally broad — we prefer false positives over missed recyclables. See
 
 ### `POST /api/analyze/recyclables`
 
-Recyclables-in-a-transparent-bag detection with a bio-waste contamination
-score.
+Recyclables in a transparent bag or transparent plastic box, with a bio-waste
+contamination score.
 
 **Form fields**
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `image` | file | yes | Image of the transparent bag. |
+| `image` | file | yes* | Image of the transparent bag or box. |
+| `imageData` | string | yes* | Base64 or data-URL image. |
+| `imageUrl` | string | yes* | Public HTTPS image URL. |
 | `provider` | string | yes | `openai` or `gemini`. |
 
 No `promptVersion` — single prompt.
@@ -322,11 +358,14 @@ than the other endpoints because this screen needs to see thin film/residue).
 ## Directory layout
 
 ```
-server/
+├── api/
+│   └── index.js           # Vercel serverless entry (re-exports src/app.js)
+├── vercel.json            # Vercel rewrites, CORS headers, function limits
 ├── .env.example           # Template — copy to .env and fill in keys
 ├── package.json           # ESM, scripts, dependencies
 └── src/
-    ├── index.js           # Express app, middleware chain, graceful shutdown
+    ├── index.js           # Local dev server + graceful shutdown
+    ├── app.js             # Express app (shared with Vercel)
     ├── config.js          # Env var parsing + validation
     ├── compression.js     # sharp-based compression + presets per endpoint
     ├── routes/
@@ -354,10 +393,12 @@ server/
     │   ├── foodWaste.js   # includes deriveRecyclablesFromText safety net
     │   └── recyclables.js # legacy contamination_reason handling
     ├── middleware/
-    │   ├── upload.js      # multer memoryStorage + image mime filter
-    │   ├── validate.js    # requireFile / requireProvider / requirePromptVersion
+    │   ├── cors.js        # Permissive CORS + OPTIONS preflight
+    │   ├── upload.js      # multer memoryStorage + optionalMultipart helper
+    │   ├── validate.js    # requireProvider / requirePromptVersion / parseJsonBodyField
     │   └── errorHandler.js# Unified JSON error envelope, MulterError handling
     └── utils/
+        ├── imageSource.js # resolveImageInput (file, base64, URL)
         └── usage.js       # buildUsageSummary, mergeUsageSummaries, pricing table
 ```
 
@@ -366,7 +407,8 @@ server/
 ## Architecture notes
 
 **Controller pattern.** Each endpoint has one controller that does the same
-four steps: validate (`requireFile` / `requireProvider` / `requirePromptVersion`),
+four steps: validate (`requireProvider` / `requirePromptVersion`),
+resolve image (`resolveImageInput` from file, base64, or URL),
 compress (`compressImage` with a preset), call vision (`callVision` dispatcher),
 parse. Errors are propagated via `next(error)` and caught by
 [errorHandler.js](src/middleware/errorHandler.js).

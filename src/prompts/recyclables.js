@@ -6,10 +6,10 @@ import { METRICS_JSON_FIELDS, METRICS_GUIDELINES } from './metrics.js';
  * Tuned for subtle bio-waste detection inside recyclables bags. The prompt
  * intentionally over-calls borderline food items rather than missing them.
  */
-const PROMPT = `Analyze this single image of a transparent bag and determine recyclables and bio-waste contamination. Items must be inside a transparent bag.
+const PROMPT = `Analyze this single image of a transparent bag or transparent plastic box and determine recyclables and bio-waste contamination. Items must be inside a transparent bag or a transparent plastic box.
 
 
-RULE: IF bag is not detected exist immateriality with "bag_detected": false, ignore the rest of the prompt.
+RULE: IF neither a transparent bag nor a transparent plastic box is detected, exit immediately with "bag_detected": false, ignore the rest of the prompt.
 
 Return ONLY valid JSON with this structure:
 {
@@ -74,7 +74,7 @@ CRITICAL — IMAGE SCANNING (VERY IMPORTANT FOR DETECTION):
     3. Bottom-left → bottom-right
     4. Then scan AGAIN focusing ONLY on areas behind/under objects
   - Actively search for small, partially hidden food between bottles, under plastic, and behind labels.
-  - Assume small food items ARE present and try to confirm them visually.
+  - Look carefully for any small, partially hidden food items before concluding none are present.
 
 ANTI-MISS RULE (VERY IMPORTANT):
   - If you see ANY evidence of:
