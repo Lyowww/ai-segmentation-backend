@@ -70,14 +70,11 @@ export const config = {
   },
   gemini: {
     apiKey: requireString(process.env.GEMINI_API_KEY, 'GEMINI_API_KEY'),
-    // model: 'gemini-2.5-flash',
-    model: 'gemini-2.5-pro',
-    fallbackModels: ['gemini-2.5-pro'],
-    // model: optionalString(process.env.GEMINI_MODEL, 'gemini-2.5-flash'),
-    // fallbackModels: parseCommaList(process.env.GEMINI_FALLBACK_MODELS, [
-    //   'gemini-2.0-flash',
-    //   'gemini-2.5-pro'
-    // ]),
+    model: optionalString(process.env.GEMINI_MODEL, 'gemini-2.5-flash'),
+    fallbackModels: parseCommaList(process.env.GEMINI_FALLBACK_MODELS, [
+      'gemini-2.0-flash',
+      'gemini-2.5-pro'
+    ]),
     maxRetries: parsePositiveInt(process.env.GEMINI_MAX_RETRIES, 3),
     retryBaseMs: parsePositiveInt(process.env.GEMINI_RETRY_BASE_MS, 1000)
   }
