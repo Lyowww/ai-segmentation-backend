@@ -26,6 +26,8 @@ const parseCommaList = (value, fallback = []) => {
 };
 
 const isVercel = process.env.VERCEL === '1' || process.env.VERCEL === 'true';
+// Vercel serverless request body is capped at ~4.5 MB. Raising these defaults
+// above that does not help — callers (recypic-backend) must compress first.
 const defaultMultipartUploadBytes = isVercel ? 4 * 1024 * 1024 : 15 * 1024 * 1024;
 const defaultJsonBodyBytes = isVercel ? 4 * 1024 * 1024 : 6 * 1024 * 1024;
 const defaultBase64ImageBytes = isVercel ? 3 * 1024 * 1024 : 10 * 1024 * 1024;
