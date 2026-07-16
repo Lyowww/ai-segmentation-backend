@@ -1,4 +1,5 @@
 import { config } from '../config.js';
+import { normalizeSourceImage, readImageMetadata } from '../compression.js';
 
 const DATA_URL_RE = /^data:(image\/[\w.+-]+);base64,(.+)$/i;
 
@@ -59,14 +60,63 @@ const assertImageMime = (mimeType) => {
   return mimeType;
 };
 
-const assertMaxBytes = (byteLength, fieldName) => {
-  if (byteLength > config.maxUploadBytes) {
-    const limitMb = (config.maxUploadBytes / (1024 * 1024)).toFixed(1);
+const assertMaxBytes = (byteLength, fieldName, limitBytes) => {
+  if (byteLength > limitBytes) {
+    const limitMb = (limitBytes / (1024 * 1024)).toFixed(1);
     throw badRequest(
       `${fieldName} exceeds the ${limitMb} MiB limit. Compress the image on the client or use a smaller file.`,
       'LIMIT_FILE_SIZE',
       413
     );
+  }
+};
+
+const assertImageDimensions = (metadata, fieldName) => {
+  const { width, height, pixelCount } = metadata;
+
+  if (
+    width &&
+    height &&
+    (width > config.maxSourceImageDimension || height > config.maxSourceImageDimension)
+  ) {
+    throw badRequest(
+      `${fieldName} dimensions exceed the ${config.maxSourceImageDimension}px safety limit.`,
+      'LIMIT_IMAGE_DIMENSIONS',
+      413
+    );
+  }
+
+  if (pixelCount && pixelCount > config.maxSourceImagePixels) {
+    throw badRequest(
+      `${fieldName} exceeds the ${config.maxSourceImagePixels.toLocaleString('en-US')} pixel safety limit.`,
+      'LIMIT_IMAGE_PIXELS',
+      413
+    );
+  }
+};
+
+const normalizeAcceptedImage = async ({ buffer, mimeType, fieldName }) => {
+  let metadata;
+  try {
+    metadata = await readImageMetadata(buffer);
+  } catch {
+    throw badRequest(`Invalid image data for ${fieldName}.`, 'INVALID_IMAGE_DATA');
+  }
+
+  assertImageDimensions(metadata, fieldName);
+
+  const shouldNormalize =
+    Boolean(metadata.width && metadata.width > config.normalizeSourceImageDimension) ||
+    Boolean(metadata.height && metadata.height > config.normalizeSourceImageDimension);
+
+  if (!shouldNormalize) {
+    return { buffer, mimeType };
+  }
+
+  try {
+    return await normalizeSourceImage(buffer);
+  } catch {
+    throw badRequest(`Invalid image data for ${fieldName}.`, 'INVALID_IMAGE_DATA');
   }
 };
 
@@ -97,7 +147,7 @@ export const decodeBase64Image = (value, fieldName) => {
     throw badRequest(`Missing required image: ${fieldName}.`, 'MISSING_FILE');
   }
 
-  assertMaxBytes(buffer.length, fieldName);
+  assertMaxBytes(buffer.length, fieldName, config.maxBase64ImageBytes);
   return { buffer, mimeType };
 };
 
@@ -120,6 +170,10 @@ export const fetchImageFromUrl = async (value, fieldName) => {
     const mimeType = assertImageMime(
       (response.headers.get('content-type') || 'image/jpeg').split(';')[0].trim()
     );
+    const contentLength = Number.parseInt(response.headers.get('content-length') || '', 10);
+    if (Number.isFinite(contentLength) && contentLength > 0) {
+      assertMaxBytes(contentLength, fieldName, config.maxRemoteImageBytes);
+    }
 
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
@@ -128,13 +182,13 @@ export const fetchImageFromUrl = async (value, fieldName) => {
       throw badRequest(`Missing required image: ${fieldName}.`, 'MISSING_FILE');
     }
 
-    assertMaxBytes(buffer.length, fieldName);
+    assertMaxBytes(buffer.length, fieldName, config.maxRemoteImageBytes);
     return { buffer, mimeType };
   } catch (error) {
     if (error?.name === 'AbortError') {
       throw badRequest(`Timed out fetching image for ${fieldName}.`, 'INVALID_IMAGE_URL');
     }
-    if (error?.status === 400) throw error;
+    if (error?.status) throw error;
     throw badRequest(`Could not fetch image for ${fieldName}.`, 'INVALID_IMAGE_URL');
   } finally {
     clearTimeout(timeout);
@@ -143,7 +197,11 @@ export const fetchImageFromUrl = async (value, fieldName) => {
 
 export const resolveImageInput = async (req, { fieldName, file }) => {
   if (file?.buffer?.length) {
-    return { buffer: file.buffer, mimeType: file.mimetype || 'image/jpeg' };
+    return normalizeAcceptedImage({
+      buffer: file.buffer,
+      mimeType: file.mimetype || 'image/jpeg',
+      fieldName
+    });
   }
 
   const dataField = `${fieldName}Data`;
@@ -152,11 +210,13 @@ export const resolveImageInput = async (req, { fieldName, file }) => {
   const urlValue = req.body?.[urlField];
 
   if (typeof dataValue === 'string' && dataValue.trim().length > 0) {
-    return decodeBase64Image(dataValue, fieldName);
+    const decoded = decodeBase64Image(dataValue, fieldName);
+    return normalizeAcceptedImage({ ...decoded, fieldName });
   }
 
   if (typeof urlValue === 'string' && urlValue.trim().length > 0) {
-    return fetchImageFromUrl(urlValue, fieldName);
+    const fetched = await fetchImageFromUrl(urlValue, fieldName);
+    return normalizeAcceptedImage({ ...fetched, fieldName });
   }
 
   throw badRequest(

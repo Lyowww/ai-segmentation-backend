@@ -1,5 +1,7 @@
 import sharp from 'sharp';
 
+import { config } from './config.js';
+
 /**
  * Compression presets per endpoint. These mirror the client-side canvas
  * settings that the React app used before — each preset is intentionally
@@ -15,6 +17,12 @@ export const COMPRESSION_PRESETS = Object.freeze({
   multiObject: { maxDimension: 512, quality: 0.7, format: 'webp' },
   foodWaste: { maxDimension: 768, quality: 0.18, format: 'jpeg' },
   recyclables: { maxDimension: 1024, quality: 0.4, format: 'jpeg' }
+});
+
+export const SOURCE_IMAGE_PRESET = Object.freeze({
+  maxDimension: config.normalizeSourceImageDimension,
+  quality: 0.82,
+  format: 'jpeg'
 });
 
 const FORMAT_MIME = {
@@ -60,4 +68,21 @@ export const compressImage = async (buffer, preset) => {
     : await pipeline.jpeg({ quality: sharpQuality, mozjpeg: true }).toBuffer();
 
   return { buffer: compressed, mimeType };
+};
+
+export const readImageMetadata = async (buffer) => {
+  const metadata = await sharp(buffer).metadata();
+  const width = Number.isFinite(metadata.width) ? metadata.width : null;
+  const height = Number.isFinite(metadata.height) ? metadata.height : null;
+
+  return {
+    width,
+    height,
+    format: metadata.format || null,
+    pixelCount: width && height ? width * height : null
+  };
+};
+
+export const normalizeSourceImage = async (buffer, preset = SOURCE_IMAGE_PRESET) => {
+  return compressImage(buffer, preset);
 };

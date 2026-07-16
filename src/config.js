@@ -26,11 +26,41 @@ const parseCommaList = (value, fallback = []) => {
 };
 
 const isVercel = process.env.VERCEL === '1' || process.env.VERCEL === 'true';
-const defaultMaxUploadBytes = isVercel ? 2 * 1024 * 1024 : 15 * 1024 * 1024;
+const defaultMultipartUploadBytes = isVercel ? 4 * 1024 * 1024 : 15 * 1024 * 1024;
+const defaultJsonBodyBytes = isVercel ? 4 * 1024 * 1024 : 6 * 1024 * 1024;
+const defaultBase64ImageBytes = isVercel ? 3 * 1024 * 1024 : 10 * 1024 * 1024;
+const defaultRemoteImageBytes = 15 * 1024 * 1024;
+const defaultMaxSourceImageDimension = 8_192;
+const defaultMaxSourceImagePixels = 40_000_000;
+const defaultNormalizeSourceImageDimension = 2_048;
 
 export const config = {
   port: parsePositiveInt(process.env.PORT, 3001),
-  maxUploadBytes: parsePositiveInt(process.env.MAX_UPLOAD_BYTES, defaultMaxUploadBytes),
+  maxMultipartUploadBytes: parsePositiveInt(
+    process.env.MAX_MULTIPART_UPLOAD_BYTES,
+    defaultMultipartUploadBytes
+  ),
+  maxJsonBodyBytes: parsePositiveInt(process.env.MAX_JSON_BODY_BYTES, defaultJsonBodyBytes),
+  maxBase64ImageBytes: parsePositiveInt(
+    process.env.MAX_BASE64_IMAGE_BYTES,
+    defaultBase64ImageBytes
+  ),
+  maxRemoteImageBytes: parsePositiveInt(
+    process.env.MAX_REMOTE_IMAGE_BYTES,
+    defaultRemoteImageBytes
+  ),
+  maxSourceImageDimension: parsePositiveInt(
+    process.env.MAX_SOURCE_IMAGE_DIMENSION,
+    defaultMaxSourceImageDimension
+  ),
+  maxSourceImagePixels: parsePositiveInt(
+    process.env.MAX_SOURCE_IMAGE_PIXELS,
+    defaultMaxSourceImagePixels
+  ),
+  normalizeSourceImageDimension: parsePositiveInt(
+    process.env.NORMALIZE_SOURCE_IMAGE_DIMENSION,
+    defaultNormalizeSourceImageDimension
+  ),
   imageFetchTimeoutMs: parsePositiveInt(process.env.IMAGE_FETCH_TIMEOUT_MS, 15_000),
   openai: {
     apiKey: requireString(process.env.OPENAI_API_KEY, 'OPENAI_API_KEY'),
