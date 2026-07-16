@@ -71,8 +71,8 @@ export const config = {
   gemini: {
     apiKey: requireString(process.env.GEMINI_API_KEY, 'GEMINI_API_KEY'),
     // model: 'gemini-2.5-flash',
-    model: 'gemini-2.0-flash',
-    fallbackModels: ['gemini-2.0-flash'],
+    model: 'gemini-2.5-flash',
+    fallbackModels: ['gemini-2.5-flash'],
     // model: optionalString(process.env.GEMINI_MODEL, 'gemini-2.5-flash'),
     // fallbackModels: parseCommaList(process.env.GEMINI_FALLBACK_MODELS, [
     //   'gemini-2.0-flash',
