@@ -1,7 +1,7 @@
 # Recypic Backend API
 
 Express backend for the Recypic AI waste segmentation app. All AI vision calls
-(OpenAI GPT-4.1, Google Gemini 2.5 Flash), prompt templates, image compression,
+(OpenAI GPT-4.1, Google Gemini 3 Pro), prompt templates, image compression,
 response parsing, and usage/cost accounting live here — the React frontend is
 purely a UI that posts `multipart/form-data` and renders the response.
 
@@ -50,8 +50,7 @@ missing (see [src/config.js](src/config.js)).
 | `OPENAI_API_KEY` | **yes** | — | OpenAI API key. |
 | `OPENAI_MODEL` | no | `gpt-4.1` | OpenAI model id used for vision calls. |
 | `GEMINI_API_KEY` | **yes** | — | Google Generative AI key. |
-
-Gemini vision model is hardcoded in [src/config.js](src/config.js) as `gemini-2.5-flash` (fallback: `gemini-2.0-flash`). `GEMINI_MODEL` / `GEMINI_FALLBACK_MODELS` env vars are ignored.
+| `GEMINI_MODEL` | no | `gemini-3-pro-preview` | Gemini model id used for vision calls. |
 
 `server/.env` is git-ignored — never commit real keys.
 
