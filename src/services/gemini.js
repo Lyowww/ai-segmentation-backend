@@ -27,6 +27,13 @@ const wrapUpstreamError = (error) => {
   wrapped.code = 'GEMINI_UPSTREAM_ERROR';
   wrapped.status = 502;
   wrapped.cause = error;
+  // TEMPORARY DEBUG — remove after diagnosis. Exposes the upstream Google
+  // error in the HTTP response because Vercel logs are not accessible.
+  wrapped.details = {
+    upstreamStatus: getErrorStatus(error),
+    upstreamMessage: error?.message ?? null,
+    upstreamErrorDetails: error?.errorDetails ?? error?.cause?.errorDetails ?? null
+  };
   return wrapped;
 };
 

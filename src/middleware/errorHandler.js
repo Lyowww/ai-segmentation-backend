@@ -35,8 +35,12 @@ export const errorHandler = (err, _req, res, _next) => {
     if (err?.cause) console.error(err.cause);
   }
 
+  // TEMPORARY DEBUG — remove after diagnosis. Surfaces err.details set by
+  // upstream wrappers so failures can be diagnosed without Vercel logs.
+  const details = err?.details ?? undefined;
+
   res.status(status).json({
-    error: { code, message }
+    error: { code, message, ...(details ? { details } : {}) }
   });
 };
 

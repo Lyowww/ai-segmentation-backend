@@ -15,8 +15,13 @@ import {
 } from '../controllers/multiObject.js';
 import { analyzeFoodWaste } from '../controllers/foodWaste.js';
 import { analyzeRecyclables } from '../controllers/recyclables.js';
+// TEMPORARY DEBUG — remove after diagnosis.
+import { debugGemini } from '../controllers/debugGemini.js';
 
 const router = Router();
+
+// TEMPORARY DEBUG — remove after diagnosis.
+router.get('/debug/gemini', debugGemini);
 
 router.post('/analyze/single', optionalMultipart(singleImageUpload), analyzeSingleImage);
 router.post('/analyze/multi/image1', optionalMultipart(multiImage1Upload), analyzeMultiObjectImage1);
