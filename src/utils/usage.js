@@ -10,6 +10,9 @@ const PRICING_PER_MILLION = {
   'gemini-2.0-flash': { input: 0.1, output: 0.4, currency: 'USD' },
   'gemini-2.5-flash': { input: 0.3, output: 2.5, currency: 'USD' },
   'gemini-2.5-pro': { input: 1.25, output: 10, currency: 'USD' },
+  'gemini-3.1-flash-lite': { input: 0.25, output: 1.5, currency: 'USD' },
+  'gemini-3-flash-preview': { input: 0.5, output: 3, currency: 'USD' },
+  'gemini-3.5-flash': { input: 1.5, output: 9, currency: 'USD' },
   'gemini-3-pro-preview': { input: 3.5, output: 10.5, currency: 'USD' }
 };
 
